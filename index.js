@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const DATA_FILE = path.join(process.cwd(), "profiles.json");
 
-// 기존 프로필 로드
+// --- 프로필 로드 / 저장 ---
 let profiles = {};
 if (fs.existsSync(DATA_FILE)) profiles = JSON.parse(fs.readFileSync(DATA_FILE));
 const saveProfiles = () => fs.writeFileSync(DATA_FILE, JSON.stringify(profiles, null, 2));
@@ -29,30 +29,26 @@ app.get("/.well-known/mcp", (req, res) => {
   });
 });
 
-// --- Configure POST (Smithery Connect에서 입력) ---
+// --- Configure POST (Smithery Connect에서 키 입력) ---
 app.post("/configure", (req, res) => {
   const { clientId, clientSecret } = req.body;
   if (!clientId || !clientSecret) return res.status(400).json({ error: "Missing clientId or clientSecret" });
 
-  // profile 생성
   const profileId = nanoid(10);
   profiles[profileId] = { clientId, clientSecret };
   saveProfiles();
 
-  // 개인화 URL 반환
   const personalUrl = `/mcp?profile=${profileId}`;
   res.json({ url: personalUrl });
 });
 
-// --- MCP POST (JSON-RPC / Smithery) ---
+// --- MCP POST (JSON-RPC / Smithery Scanner) ---
 app.post("/mcp", async (req, res) => {
   const { jsonrpc, id, method, params } = req.body || {};
 
-  if (jsonrpc !== "2.0") {
-    return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
-  }
+  if (jsonrpc !== "2.0") return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
 
-  // 1. initialize
+  // --- initialize ---
   if (method === "initialize") {
     return res.json({
       jsonrpc: "2.0",
@@ -65,7 +61,7 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
-  // 2. tools/list
+  // --- tools/list ---
   if (method === "tools/list") {
     return res.json({
       jsonrpc: "2.0",
@@ -90,12 +86,10 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
-  // 3. tools/call
+  // --- tools/call ---
   if (method === "tools/call") {
     const { name, arguments: args } = params || {};
-    if (name !== "naver.search") {
-      return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Unknown tool" } });
-    }
+    if (name !== "naver.search") return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Unknown tool" } });
 
     const profileId = args?.profile;
     if (!profileId || !profiles[profileId]) return res.json({ jsonrpc: "2.0", id, error: { code: -32602, message: "Invalid profile" } });
@@ -117,7 +111,7 @@ app.post("/mcp", async (req, res) => {
     }
   }
 
-  // fallback unknown method
+  // --- 기타 요청 무조건 Unknown method로 처리 ---
   return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
 });
 
