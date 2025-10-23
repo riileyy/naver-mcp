@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>MCP Configure</title>
+</head>
+<body>
+  <h1>Configure MCP</h1>
+  <label for="apiKey">API Key:</label>
+  <input type="text" id="apiKey" placeholder="API Key 입력">
+  <br><br>
+  <label for="profile">Profile:</label>
+  <input type="text" id="profile" placeholder="Profile (선택)">
+  <br><br>
+  <button id="configureBtn">Configure</button>
+
+  <script>
+    document.getElementById("configureBtn").addEventListener("click", async () => {
+      const apiKey = document.getElementById("apiKey").value.trim();
+      const profile = document.getElementById("profile").value.trim() || "default-profile";
+
+      if (!apiKey) return alert("API Key를 입력해주세요.");
+
+      const res = await fetch("/api/mcp-connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apiKey, profile })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("연결 성공! 사용 가능한 도구: " + data.tools.join(", "));
+      } else {
+        alert("연결 실패: " + data.error);
+      }
+    });
+  </script>
+</body>
+</html>
