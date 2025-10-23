@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"/><title>Naver MCP — Generate URL</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:30px auto;padding:0 12px}
+input{width:100%;padding:10px;margin:6px 0;border-radius:6px;border:1px solid #ccc}
+button{padding:10px 14px;border-radius:6px;background:#0070f3;color:#fff;border:0;cursor:pointer}
+.box{margin-top:12px;padding:10px;border-radius:8px;background:#f7f7f7;word-break:break-all}
+small{color:#666}
+</style>
+</head>
+<body>
+<h2>Naver Search — 개인 MCP URL 생성</h2>
+<p>네이버 개발자센터에서 발급받은 <b>Client ID</b>와 <b>Client Secret</b>을 입력하세요.</p>
+<label>Client ID</label><input id="cid" placeholder="Client ID"/>
+<label>Client Secret</label><input id="sec" placeholder="Client Secret"/>
+<button onclick="generate()">개인 MCP URL 생성</button>
+<div class="box" id="out"></div>
+<script>
+function generate(){
+  const cid = document.getElementById('cid').value.trim();
+  const sec = document.getElementById('sec').value.trim();
+  if(!cid||!sec){alert('두 항목 모두 입력하세요');return;}
+  const base = window.location.origin;
+  const url = `${base}/mcp?cid=${encodeURIComponent(cid)}&sec=${encodeURIComponent(sec)}`;
+  document.getElementById('out').innerHTML = `<p><b>생성된 개인 MCP URL</b></p>
+  <p><code>${url}</code></p><p>Smithery의 Server URL 칸에 붙여넣으세요.</p>
+  <p><button onclick="copy('${url.replace(/'/g,\"\\'\")}')">복사</button></p>`;
+}
+function copy(t){navigator.clipboard.writeText(t).then(()=>alert('복사됨'));}
+</script>
+</body>
+</html>

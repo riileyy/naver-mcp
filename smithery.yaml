@@ -1,0 +1,9 @@
+id: naver-search-mcp
+name: Naver Search MCP
+description: Users supply their own Naver API credentials and receive a personal MCP URL.
+runtime: typescript
+startCommand:
+  run: node index.js
+endpoints:
+  mcp: /mcp
+  auth: /auth
