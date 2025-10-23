@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3000
 
 # 6. 서버 실행 명령
-CMD ["node", "naver-mcp.js"]
+CMD ["node", "index.js"]
