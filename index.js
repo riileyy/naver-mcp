@@ -14,10 +14,10 @@ app.use(express.static(__dirname));
 
 const PORT = process.env.PORT || 3000;
 
-// 메모리 저장 (간단용, DB 가능)
+// 메모리 저장 (간단 용도)
 const users = {};
 
-// 🔹 Step1: 등록 & 개인 URL 발급
+// 🔹 등록 & 개인 URL 발급
 app.post("/register", (req, res) => {
   const { clientId, clientSecret } = req.body;
   if (!clientId || !clientSecret) {
@@ -31,10 +31,10 @@ app.post("/register", (req, res) => {
   return res.json({ url: userUrl });
 });
 
-// 🔹 Step2: 검색
+// 🔹 검색
 app.get("/search", async (req, res) => {
   const { key, query } = req.query;
-  if (!key || !users[key]) return res.status(401).json({ error: "잘못된 키입니다" });
+  if (!key || !users[key]) return res.status(401).json({ error: "잘못된 키입니다." });
   if (!query) return res.status(400).json({ error: "검색어(query)를 입력하세요." });
 
   const { clientId, clientSecret } = users[key];
@@ -51,7 +51,7 @@ app.get("/search", async (req, res) => {
   }
 });
 
-// 🔹 Step3: Frontend
+// 🔹 Frontend
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "frontend.html")));
 
 app.listen(PORT, () => console.log(`MCP Server running on port ${PORT}`));
