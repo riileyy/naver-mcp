@@ -13,22 +13,18 @@ app.use(bodyParser.json());
 app.use(express.static(__dirname));
 
 const PORT = process.env.PORT || 3000;
+const users = {}; // 메모리 저장
 
-// 메모리 저장 (간단 용도)
-const users = {};
-
-// 🔹 등록 & 개인 URL 발급
+// 🔹 개인 URL 발급
 app.post("/register", (req, res) => {
   const { clientId, clientSecret } = req.body;
   if (!clientId || !clientSecret) {
     return res.status(400).json({ error: "Client ID와 Secret을 입력하세요" });
   }
-
   const userKey = crypto.randomBytes(16).toString("hex");
   users[userKey] = { clientId, clientSecret };
-
   const userUrl = `${req.protocol}://${req.get("host")}/search?key=${userKey}`;
-  return res.json({ url: userUrl });
+  res.json({ url: userUrl });
 });
 
 // 🔹 검색
@@ -38,7 +34,6 @@ app.get("/search", async (req, res) => {
   if (!query) return res.status(400).json({ error: "검색어(query)를 입력하세요." });
 
   const { clientId, clientSecret } = users[key];
-
   try {
     const response = await fetch(
       `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}`,
