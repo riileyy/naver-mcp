@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const DATA_FILE = path.join(process.cwd(), "profiles.json");
 
-// profiles.json 초기화
+// 기존 프로필 로드
 let profiles = {};
 if (fs.existsSync(DATA_FILE)) profiles = JSON.parse(fs.readFileSync(DATA_FILE));
 const saveProfiles = () => fs.writeFileSync(DATA_FILE, JSON.stringify(profiles, null, 2));
@@ -23,39 +23,25 @@ app.get("/.well-known/mcp", (req, res) => {
   res.json({
     id: "naver-mcp",
     name: "Naver Search MCP",
-    description: "Users provide Client ID/Secret and get personal MCP URL",
-    authorization_endpoint: "/auth",
+    description: "Users provide Client ID/Secret via Configure and get personal MCP URL",
+    authorization_endpoint: "/configure",
     endpoints: { mcp: "/mcp" }
   });
 });
 
-// --- Auth UI ---
-app.get("/auth", (req, res) => {
-  res.send(`
-    <html><body style="font-family:sans-serif;max-width:560px;margin:30px auto;">
-      <h2>Naver Search — 개인 MCP URL 생성</h2>
-      <form method="POST" action="/auth">
-        <label>Client ID</label><br/>
-        <input name="clientId" required style="width:100%;padding:8px;margin:6px 0;"><br/>
-        <label>Client Secret</label><br/>
-        <input name="clientSecret" required style="width:100%;padding:8px;margin:6px 0;"><br/>
-        <button type="submit" style="padding:8px 12px;margin-top:8px;">개인 MCP URL 생성</button>
-      </form>
-    </body></html>
-  `);
-});
-
-// --- Auth POST (프로필 생성) ---
-app.post("/auth", (req, res) => {
+// --- Configure POST (Smithery Connect에서 입력) ---
+app.post("/configure", (req, res) => {
   const { clientId, clientSecret } = req.body;
-  if (!clientId || !clientSecret) return res.status(400).send("Missing parameters");
+  if (!clientId || !clientSecret) return res.status(400).json({ error: "Missing clientId or clientSecret" });
 
+  // profile 생성
   const profileId = nanoid(10);
   profiles[profileId] = { clientId, clientSecret };
   saveProfiles();
 
-  const url = `/mcp?profile=${profileId}`;
-  res.send(`<p>✅ 개인 MCP URL 생성: <a href="${url}">${url}</a></p>`);
+  // 개인화 URL 반환
+  const personalUrl = `/mcp?profile=${profileId}`;
+  res.json({ url: personalUrl });
 });
 
 // --- MCP POST (JSON-RPC / Smithery) ---
@@ -66,7 +52,7 @@ app.post("/mcp", async (req, res) => {
     return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
   }
 
-  // --- 1. initialize 처리 ---
+  // 1. initialize
   if (method === "initialize") {
     return res.json({
       jsonrpc: "2.0",
@@ -79,7 +65,7 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
-  // --- 2. tools/list ---
+  // 2. tools/list
   if (method === "tools/list") {
     return res.json({
       jsonrpc: "2.0",
@@ -104,7 +90,7 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
-  // --- 3. tools/call ---
+  // 3. tools/call
   if (method === "tools/call") {
     const { name, arguments: args } = params || {};
     if (name !== "naver.search") {
@@ -131,7 +117,7 @@ app.post("/mcp", async (req, res) => {
     }
   }
 
-  // --- fallback unknown method ---
+  // fallback unknown method
   return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
 });
 
