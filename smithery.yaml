@@ -1,7 +1,7 @@
 id: naver-mcp
 name: Naver Search MCP
 description: 개인 네이버 API로 검색 가능한 MCP
-entrypoint: https://YOUR_DOMAIN/        # Vercel 또는 배포 URL
+entrypoint: https://naver-9rdyqmyai-rileys-projects-7e86bc46.vercel.app/        # Vercel 또는 배포 URL
 inputs:
   - name: clientId
     type: text
