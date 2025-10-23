@@ -1,13 +1,12 @@
 {
-  "name": "naver-mcp",
+  "name": "my-mcp-app",
   "version": "1.0.0",
-  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "dev": "vercel dev"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^3.3.2",
-    "nanoid": "^4.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "vercel": "^28.0.0"
   }
 }
