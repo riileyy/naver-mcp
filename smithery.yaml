@@ -1,10 +1,13 @@
 id: naver-mcp
 name: Naver Search MCP
 description: 개인 네이버 API를 사용하여 검색할 수 있는 MCP 서버
-entrypoint: https://naver-ax2jbncpl-rileys-projects-7e86bc46.vercel.app//
-runtime: node
+entrypoint: https://naver-ax2jbncpl-rileys-projects-7e86bc46.vercel.app
+runtime: container
+
 startCommand:
+  type: http
   command: node index.js
+  port: 3000
 
 inputs:
   - name: clientId
