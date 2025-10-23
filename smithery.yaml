@@ -1,15 +1,8 @@
 id: naver-mcp
 name: Naver Search MCP
-description: 개인 네이버 API로 검색할 수 있는 MCP 서버
+description: 개인 네이버 API로 검색 가능한 MCP 서버
 runtime: container
 startCommand:
   type: http
   url: http://localhost:3000
   port: 3000
-env:
-  NAVER_CLIENT_ID:
-    description: Your Naver API client ID
-    required: true
-  NAVER_CLIENT_SECRET:
-    description: Your Naver API client secret
-    required: true
