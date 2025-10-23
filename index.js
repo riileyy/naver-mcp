@@ -12,12 +12,12 @@ app.use(express.urlencoded({ extended: true }));
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// health/UI
+// UI
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "frontend.html"));
 });
 
-// discovery for Smithery
+// Smithery discovery
 app.get("/.well-known/mcp", (req, res) => {
   res.json({
     id: "naver-mcp",
@@ -27,7 +27,7 @@ app.get("/.well-known/mcp", (req, res) => {
   });
 });
 
-// simple auth UI
+// Auth page (유저가 자신의 ID/PW 입력 → 개인 URL 생성)
 app.get("/auth", (req, res) => {
   res.send(`
     <html><head><meta charset="utf-8"><title>Naver MCP Auth</title></head>
@@ -41,12 +41,12 @@ app.get("/auth", (req, res) => {
         <input name="sec" required style="width:100%;padding:8px;margin:6px 0;"><br/>
         <button type="submit" style="padding:8px 12px;margin-top:8px;">개인 MCP URL 생성</button>
       </form>
-      <p style="color:gray;font-size:12px;margin-top:10px;">주의: 입력하신 값은 서버에 저장되지 않고, URL 쿼리로만 사용됩니다.</p>
+      <p style="color:gray;font-size:12px;margin-top:10px;">입력하신 값은 서버에 저장되지 않고, URL 쿼리로만 사용됩니다.</p>
     </body></html>
   `);
 });
 
-// JSON-RPC /mcp endpoint
+// JSON-RPC MCP endpoint
 app.post("/mcp", async (req, res) => {
   const { jsonrpc, id, method, params } = req.body || {};
 
@@ -54,6 +54,7 @@ app.post("/mcp", async (req, res) => {
     return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
   }
 
+  // Initialize
   if (method === "initialize") {
     return res.json({
       jsonrpc: "2.0",
@@ -66,6 +67,7 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
+  // List tools
   if (method === "tools/list") {
     return res.json({
       jsonrpc: "2.0",
@@ -89,6 +91,7 @@ app.post("/mcp", async (req, res) => {
     });
   }
 
+  // Call tool
   if (method === "tools/call") {
     const { name, arguments: args } = params || {};
     if (name !== "naver.search") {
@@ -132,6 +135,7 @@ app.post("/mcp", async (req, res) => {
   return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
 });
 
+// Listen
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MCP server listening on ${PORT}`));
 export default app;
