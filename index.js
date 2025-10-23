@@ -8,16 +8,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// profiles 저장
 const DATA_FILE = path.join(process.cwd(), "profiles.json");
+
+// profiles.json 초기화
 let profiles = {};
 if (fs.existsSync(DATA_FILE)) profiles = JSON.parse(fs.readFileSync(DATA_FILE));
 const saveProfiles = () => fs.writeFileSync(DATA_FILE, JSON.stringify(profiles, null, 2));
 
-// 루트
+// --- Root ---
 app.get("/", (req, res) => res.send("✅ Naver MCP Server running"));
 
-// Discovery (Smithery scanner)
+// --- Discovery ---
 app.get("/.well-known/mcp", (req, res) => {
   res.json({
     id: "naver-mcp",
@@ -28,7 +29,7 @@ app.get("/.well-known/mcp", (req, res) => {
   });
 });
 
-// Auth UI
+// --- Auth UI ---
 app.get("/auth", (req, res) => {
   res.send(`
     <html><body style="font-family:sans-serif;max-width:560px;margin:30px auto;">
@@ -44,7 +45,7 @@ app.get("/auth", (req, res) => {
   `);
 });
 
-// Auth POST → 프로필 생성
+// --- Auth POST (프로필 생성) ---
 app.post("/auth", (req, res) => {
   const { clientId, clientSecret } = req.body;
   if (!clientId || !clientSecret) return res.status(400).send("Missing parameters");
@@ -57,7 +58,7 @@ app.post("/auth", (req, res) => {
   res.send(`<p>✅ 개인 MCP URL 생성: <a href="${url}">${url}</a></p>`);
 });
 
-// MCP endpoint
+// --- MCP GET (브라우저 테스트용) ---
 app.get("/mcp", async (req, res) => {
   const { profile, q, type="web" } = req.query;
   if (!profile || !profiles[profile]) return res.status(400).json({ error: "Invalid profile" });
@@ -67,10 +68,7 @@ app.get("/mcp", async (req, res) => {
 
   try {
     const response = await fetch(`https://openapi.naver.com/v1/search/${type}.json?query=${encodeURIComponent(q)}&display=10`, {
-      headers: {
-        "X-Naver-Client-Id": clientId,
-        "X-Naver-Client-Secret": clientSecret
-      }
+      headers: { "X-Naver-Client-Id": clientId, "X-Naver-Client-Secret": clientSecret }
     });
     const data = await response.json();
     res.json(data);
@@ -79,6 +77,62 @@ app.get("/mcp", async (req, res) => {
   }
 });
 
-// 서버 시작
+// --- MCP POST (JSON-RPC / Smithery용) ---
+app.post("/mcp", async (req, res) => {
+  const { jsonrpc, id, method, params } = req.body || {};
+
+  if (jsonrpc !== "2.0") return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
+
+  if (method === "tools/list") {
+    return res.json({
+      jsonrpc: "2.0",
+      id,
+      result: {
+        tools: [
+          {
+            name: "naver.search",
+            description: "Search Naver (web/news/blog/shop/book)",
+            inputSchema: {
+              type: "object",
+              properties: {
+                q: { type: "string" },
+                type: { type: "string", enum: ["web","news","blog","shop","book"], default: "web" },
+                profile: { type: "string" }
+              },
+              required: ["q","profile"]
+            }
+          }
+        ]
+      }
+    });
+  }
+
+  if (method === "tools/call") {
+    const { name, arguments: args } = params || {};
+    if (name !== "naver.search") return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Unknown tool" } });
+
+    const profileId = args?.profile;
+    if (!profileId || !profiles[profileId]) return res.json({ jsonrpc: "2.0", id, error: { code: -32602, message: "Invalid profile" } });
+
+    const { clientId, clientSecret } = profiles[profileId];
+    const q = args?.q;
+    const type = args?.type || "web";
+    if (!q) return res.json({ jsonrpc: "2.0", id, error: { code: -32602, message: "Missing query" } });
+
+    try {
+      const apiRes = await fetch(`https://openapi.naver.com/v1/search/${type}.json?query=${encodeURIComponent(q)}&display=10`, {
+        headers: { "X-Naver-Client-Id": clientId, "X-Naver-Client-Secret": clientSecret }
+      });
+      const data = await apiRes.json();
+      return res.json({ jsonrpc: "2.0", id, result: { items: data.items || data } });
+    } catch (err) {
+      return res.json({ jsonrpc: "2.0", id, error: { code: -32000, message: "Naver API request failed", data: err.message } });
+    }
+  }
+
+  return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
+});
+
+// --- 서버 시작 ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Naver MCP server running on port ${PORT}`));
