@@ -1,35 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Naver Search MCP 등록</title>
+  <meta charset="utf-8" />
+  <title>Naver Search MCP</title>
 </head>
-<body>
-  <h2>네이버 API 등록</h2>
-  <form id="registerForm">
-    <input type="text" id="clientId" placeholder="Client ID" required />
-    <input type="text" id="clientSecret" placeholder="Client Secret" required />
-    <button type="submit">개인 URL 발급</button>
-  </form>
-  <div id="result"></div>
-
-  <script>
-    const form = document.getElementById("registerForm");
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      const clientId = document.getElementById("clientId").value;
-      const clientSecret = document.getElementById("clientSecret").value;
-
-      const res = await fetch("/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, clientSecret })
-      });
-      const data = await res.json();
-      document.getElementById("result").innerHTML = data.url 
-        ? `<p>발급 URL: <a href="${data.url}" target="_blank">${data.url}</a></p>`
-        : `<p style="color:red;">${data.error}</p>`;
-    });
-  </script>
+<body style="font-family: sans-serif; max-width:720px; margin:30px auto;">
+  <h1>Naver Search MCP</h1>
+  <p><a href="/auth">개인 MCP URL 만들기 (네이버 Client ID/Secret 입력)</a></p>
+  <hr/>
+  <p style="color:gray; font-size:14px;">
+    이 서비스는 사용자가 본인의 네이버 개발자 Client ID/Secret을 입력하여 개인화된 MCP URL을 생성하고, 해당 URL을 통해 잔디 같은 클라이언트에서 네이버 검색을 하도록 돕습니다.
+  </p>
 </body>
 </html>
