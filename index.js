@@ -1,141 +1,58 @@
+// index.js
 import express from "express";
-import cors from "cors";
-import axios from "axios";
-import path from "path";
-import { fileURLToPath } from "url";
+import bodyParser from "body-parser";
+import crypto from "crypto";
+import fetch from "node-fetch";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 3000;
 
-// UI
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend.html"));
-});
+// 🔹 메모리 저장 (간단한 예제, 실제는 DB 추천)
+const users = {};
 
-// Smithery discovery
-app.get("/.well-known/mcp", (req, res) => {
-  res.json({
-    id: "naver-mcp",
-    name: "Naver Search MCP",
-    description: "Users provide their own Naver Client ID/Secret and get a personal MCP URL.",
-    endpoints: { mcp: "/mcp", auth: "/auth" }
-  });
-});
+// 🔹 Step 1: 사용자 등록 및 개인 URL 발급
+app.post("/register", (req, res) => {
+    const { clientId, clientSecret } = req.body;
 
-// Auth page (유저가 자신의 ID/PW 입력 → 개인 URL 생성)
-app.get("/auth", (req, res) => {
-  res.send(`
-    <html><head><meta charset="utf-8"><title>Naver MCP Auth</title></head>
-    <body style="font-family:sans-serif;max-width:560px;margin:30px auto;">
-      <h2>Naver Search — 개인 MCP URL 생성</h2>
-      <p>네이버 개발자 센터에서 발급받은 <b>Client ID</b>와 <b>Client Secret</b>을 입력하세요.</p>
-      <form method="GET" action="/mcp">
-        <label>Client ID</label><br/>
-        <input name="cid" required style="width:100%;padding:8px;margin:6px 0;"><br/>
-        <label>Client Secret</label><br/>
-        <input name="sec" required style="width:100%;padding:8px;margin:6px 0;"><br/>
-        <button type="submit" style="padding:8px 12px;margin-top:8px;">개인 MCP URL 생성</button>
-      </form>
-      <p style="color:gray;font-size:12px;margin-top:10px;">입력하신 값은 서버에 저장되지 않고, URL 쿼리로만 사용됩니다.</p>
-    </body></html>
-  `);
-});
-
-// JSON-RPC MCP endpoint
-app.post("/mcp", async (req, res) => {
-  const { jsonrpc, id, method, params } = req.body || {};
-
-  if (jsonrpc !== "2.0") {
-    return res.status(400).json({ jsonrpc: "2.0", id, error: { code: -32600, message: "jsonrpc must be 2.0" } });
-  }
-
-  // Initialize
-  if (method === "initialize") {
-    return res.json({
-      jsonrpc: "2.0",
-      id,
-      result: {
-        protocolVersion: "2025-06-18",
-        serverInfo: { name: "naver-mcp", version: "1.0.0" },
-        capabilities: { tools: {} }
-      }
-    });
-  }
-
-  // List tools
-  if (method === "tools/list") {
-    return res.json({
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: [
-          {
-            name: "naver.search",
-            description: "Search Naver (web/news/blog/shop/book).",
-            inputSchema: {
-              type: "object",
-              properties: {
-                q: { type: "string" },
-                type: { type: "string", enum: ["web","news","blog","shop","book"], default: "web" }
-              },
-              required: ["q"]
-            }
-          }
-        ]
-      }
-    });
-  }
-
-  // Call tool
-  if (method === "tools/call") {
-    const { name, arguments: args } = params || {};
-    if (name !== "naver.search") {
-      return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Unknown tool" } });
+    if (!clientId || !clientSecret) {
+        return res.status(400).json({ error: "Client ID와 Secret을 입력하세요" });
     }
 
-    const urlCid = req.query.cid;
-    const urlSec = req.query.sec;
-    const argCid = args?.client_id;
-    const argSec = args?.client_secret;
-    const client_id = urlCid || argCid;
-    const client_secret = urlSec || argSec;
-    const q = args?.q;
-    const type = args?.type || "web";
+    // 개인화된 서버 키 생성
+    const userKey = crypto.randomBytes(16).toString("hex");
+    users[userKey] = { clientId, clientSecret };
 
-    if (!q || !client_id || !client_secret) {
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32602, message: "Missing parameters: q, client_id and client_secret are required" }
-      });
+    // 발급 URL (예: https://YOUR_DOMAIN/search?key=XXXX)
+    const userUrl = `${req.protocol}://${req.get("host")}/search?key=${userKey}`;
+    return res.json({ url: userUrl });
+});
+
+// 🔹 Step 2: 검색 요청 처리
+app.get("/search", async (req, res) => {
+    const { key, query } = req.query;
+    if (!key || !users[key]) {
+        return res.status(401).json({ error: "잘못된 키입니다. 먼저 등록하세요." });
     }
+    if (!query) {
+        return res.status(400).json({ error: "검색어(query)를 입력하세요." });
+    }
+
+    const { clientId, clientSecret } = users[key];
 
     try {
-      const apiRes = await axios.get(`https://openapi.naver.com/v1/search/${type}.json`, {
-        params: { query: q, display: 10 },
-        headers: { "X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret },
-        timeout: 8000
-      });
-
-      return res.json({ jsonrpc: "2.0", id, result: { items: apiRes.data.items || apiRes.data } });
+        const response = await fetch(`https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}`, {
+            headers: {
+                "X-Naver-Client-Id": clientId,
+                "X-Naver-Client-Secret": clientSecret
+            }
+        });
+        const data = await response.json();
+        res.json(data);
     } catch (err) {
-      return res.json({
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32000, message: "Naver API request failed", data: err.response?.data || err.message }
-      });
+        res.status(500).json({ error: err.message });
     }
-  }
-
-  return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
 });
 
-// Listen
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`MCP server listening on ${PORT}`));
-export default app;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
