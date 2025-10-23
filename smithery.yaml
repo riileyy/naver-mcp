@@ -4,9 +4,9 @@ description: |
   Users can input their own Naver API Client ID and Secret to generate a personal MCP URL for JANDI or any MCP client.
 runtime: container
 
-# Dockerfile 기반 배포 (Smithery가 자동으로 build & run)
 startCommand:
   type: http
+  command: node index.js
   port: 3000
 
 tools:
