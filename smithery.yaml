@@ -1,7 +1,7 @@
 id: naver-mcp
 name: Naver Search MCP
 description: 개인 네이버 API를 사용하여 검색할 수 있는 MCP 서버
-entrypoint: https://naver-mcp-git-main-rileys-projects-7e86bc46.vercel.app    # 🔹 배포 후 실제 URL로 변경
+entrypoint: https://YOUR_VERCEL_URL/    # 🔹 배포 후 실제 URL로 변경
 runtime: typescript
 startCommand:
   command: node index.js
