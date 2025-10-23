@@ -1,30 +1,35 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Naver MCP Test</title>
+  <meta charset="UTF-8">
+  <title>Naver Search MCP 등록</title>
 </head>
 <body>
-<h2>Naver MCP 테스트</h2>
-<form id="searchForm">
-  <p>검색어: <input type="text" id="q" value="오늘 금 시세"></p>
-  <p>검색타입:
-    <select id="type">
-      <option value="web">web</option>
-      <option value="news">news</option>
-      <option value="blog">blog</option>
-      <option value="shop">shop</option>
-      <option value="book">book</option>
-    </select>
-  </p>
-  <p>Client ID: <input type="text" id="client_id" required></p>
-  <p>Client Secret: <input type="text" id="client_secret" required></p>
-  <button type="submit">검색</button>
-</form>
-<pre id="result"></pre>
+  <h2>네이버 API 등록</h2>
+  <form id="registerForm">
+    <input type="text" id="clientId" placeholder="Client ID" required />
+    <input type="text" id="clientSecret" placeholder="Client Secret" required />
+    <button type="submit">개인 URL 발급</button>
+  </form>
+  <div id="result"></div>
 
-<script>
-document.getElementById("searchForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const q = document.getElementById("q").value;
-  const type = document
+  <script>
+    const form = document.getElementById("registerForm");
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const clientId = document.getElementById("clientId").value;
+      const clientSecret = document.getElementById("clientSecret").value;
+
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, clientSecret })
+      });
+      const data = await res.json();
+      document.getElementById("result").innerHTML = data.url 
+        ? `<p>발급 URL: <a href="${data.url}" target="_blank">${data.url}</a></p>`
+        : `<p style="color:red;">${data.error}</p>`;
+    });
+  </script>
+</body>
+</html>
