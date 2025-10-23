@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const DATA_FILE = path.join(process.cwd(), "profiles.json");
 
-// --- 프로필 로드 / 저장 ---
+// --- Load / Save profiles ---
 let profiles = {};
 if (fs.existsSync(DATA_FILE)) profiles = JSON.parse(fs.readFileSync(DATA_FILE));
 const saveProfiles = () => fs.writeFileSync(DATA_FILE, JSON.stringify(profiles, null, 2));
@@ -111,7 +111,7 @@ app.post("/mcp", async (req, res) => {
     }
   }
 
-  // --- 기타 요청 무조건 Unknown method로 처리 ---
+  // --- 모든 기타 요청 Unknown method 처리 ---
   return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
 });
 
