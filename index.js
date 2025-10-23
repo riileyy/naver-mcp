@@ -76,3 +76,110 @@ app.post("/mcp", async (req, res) => {
         tools: [
           {
             name: "naver.search",
+            description: "Search Naver (web/news/blog/shop/book).",
+            inputSchema: {
+              type: "object",
+              properties: {
+                q: { type: "string" },
+                type: { type: "string", enum: ["web","news","blog","shop","book"], default: "web" }
+              },
+              required: ["q"]
+            }
+          }
+        ]
+      }
+    });
+  }
+
+  // tools/call
+  if (method === "tools/call") {
+    const { name, arguments: args } = params || {};
+    if (name !== "naver.search") {
+      return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: "Unknown tool" } });
+    }
+
+    // Credentials priority:
+    // 1) URL query parameters when user used the generated personal URL (/mcp?cid=..&sec=..)
+    // 2) arguments passed in JSON-RPC call (args.client_id / args.client_secret)
+    const urlCid = req.query.cid;
+    const urlSec = req.query.sec;
+    const argCid = args?.client_id;
+    const argSec = args?.client_secret;
+
+    const client_id = urlCid || argCid;
+    const client_secret = urlSec || argSec;
+
+    const q = args?.q;
+    const type = args?.type || "web";
+
+    if (!q || !client_id || !client_secret) {
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32602, message: "Missing parameters: q, client_id and client_secret are required" }
+      });
+    }
+
+    try {
+      const apiRes = await axios.get(`https://openapi.naver.com/v1/search/${type}.json`, {
+        params: { query: q, display: 10 },
+        headers: {
+          "X-Naver-Client-Id": client_id,
+          "X-Naver-Client-Secret": client_secret
+        },
+        timeout: 8000
+      });
+
+      return res.json({ jsonrpc: "2.0", id, result: { items: apiRes.data.items || apiRes.data } });
+    } catch (err) {
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32000, message: "Naver API request failed", data: err.response?.data || err.message }
+      });
+    }
+  }
+
+  return res.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown method: ${method}` } });
+});
+ 
+// optional helper endpoints (manual testing)
+app.get("/tools", (req, res) => {
+  res.json({
+    tools: [
+      {
+        name: "naver.search",
+        description: "Search Naver. Provide q and credentials.",
+        parameters: {
+          q: { type: "string", required: true },
+          type: { type: "string", required: false, enum: ["web","news","blog","shop","book"] },
+          client_id: { type: "string", required: true },
+          client_secret: { type: "string", required: true }
+        }
+      }
+    ]
+  });
+});
+
+app.post("/invoke", async (req, res) => {
+  const { tool, params } = req.body || {};
+  if (tool !== "naver.search") return res.status(400).json({ error: "unsupported tool" });
+  const client_id = params?.client_id;
+  const client_secret = params?.client_secret;
+  const q = params?.q;
+  const type = params?.type || "web";
+  if (!q || !client_id || !client_secret) return res.status(400).json({ error: "missing parameters" });
+  try {
+    const apiRes = await axios.get(`https://openapi.naver.com/v1/search/${type}.json`, {
+      params: { query: q, display: 10 },
+      headers: { "X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret }
+    });
+    res.json(apiRes.data);
+  } catch (err) {
+    res.status(502).json({ error: "upstream error", detail: err.response?.data || err.message });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`MCP server listening on ${PORT}`));
+export default app;
