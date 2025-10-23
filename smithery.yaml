@@ -1,9 +1,41 @@
 id: naver-search-mcp
 name: Naver Search MCP
-description: Users supply their own Naver API credentials and receive a personal MCP URL.
-runtime: typescript
+description: |
+  Users can input their own Naver API Client ID and Secret to generate a personal MCP URL for JANDI or any MCP client.
+runtime: container
+
+# Dockerfile 기반 배포 (Smithery가 자동으로 build & run)
 startCommand:
-  run: node index.js
+  type: http
+  port: 3000
+
+tools:
+  - name: naver.search
+    description: Search Naver (web/news/blog/shop/book).
+    inputSchema:
+      type: object
+      properties:
+        q:
+          type: string
+          description: 검색어 (예: '오늘 날씨')
+        type:
+          type: string
+          enum: [web, news, blog, shop, book]
+          default: web
+        client_id:
+          type: string
+          description: Naver Client ID
+        client_secret:
+          type: string
+          description: Naver Client Secret
+      required: [q, client_id, client_secret]
+
 endpoints:
   mcp: /mcp
   auth: /auth
+
+tags:
+  - naver
+  - search
+  - api
+  - korean
