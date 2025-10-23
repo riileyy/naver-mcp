@@ -1,18 +1,16 @@
 id: naver-mcp
 name: Naver Search MCP
-description: 개인 네이버 API를 사용하여 검색할 수 있는 MCP 서버
-entrypoint: https://naver-ax2jbncpl-rileys-projects-7e86bc46.vercel.app
+description: Search Naver news using your own API key.
 runtime: container
-
 startCommand:
   type: http
-  command: node index.js
+  url: http://localhost:3000
   port: 3000
 
-inputs:
-  - name: clientId
-    type: text
-    label: 네이버 Client ID
-  - name: clientSecret
-    type: text
-    label: 네이버 Client Secret
+env:
+  NAVER_CLIENT_ID:
+    description: Your Naver API client ID
+    required: true
+  NAVER_CLIENT_SECRET:
+    description: Your Naver API client secret
+    required: true
