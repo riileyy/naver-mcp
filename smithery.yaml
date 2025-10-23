@@ -1,4 +1,4 @@
-id: naver-search-mcp
+id: naver-mcp
 name: Naver Search MCP
 description: |
   Users can input their own Naver API Client ID and Secret to generate a personal MCP URL for JANDI or any MCP client.
@@ -6,7 +6,6 @@ runtime: container
 
 startCommand:
   type: http
-  command: node index.js
   port: 3000
 
 tools:
