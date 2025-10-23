@@ -1,11 +1,14 @@
 {
-  "name": "naver-search-mcp",
+  "name": "naver-mcp",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "axios": "^1.7.0",
+    "cors": "^2.8.5"
   }
 }
